@@ -1,29 +1,27 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import toast, { Toaster } from "react-hot-toast";
 
 const Signup = () => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    username: "",
     email: "",
-    phone: "",
     password: "",
-    confirmPassword: "",
-    accountType: "individual",
-    agreeToTerms: false,
-    subscribeToNewsletter: false,
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     });
 
     // Clear error when user starts typing
@@ -38,18 +36,11 @@ const Signup = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    // First Name validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-    } else if (formData.firstName.length < 2) {
-      newErrors.firstName = "First name must be at least 2 characters";
-    }
-
-    // Last Name validation
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    } else if (formData.lastName.length < 2) {
-      newErrors.lastName = "Last name must be at least 2 characters";
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+    } else if (formData.username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters";
     }
 
     // Email validation
@@ -59,34 +50,11 @@ const Signup = () => {
       newErrors.email = "Please enter a valid email";
     }
 
-    // Phone validation
-    if (
-      formData.phone &&
-      !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ""))
-    ) {
-      newErrors.phone = "Please enter a valid phone number";
-    }
-
     // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password =
-        "Password must contain uppercase, lowercase, and number";
-    }
-
-    // Confirm Password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    // Terms agreement validation
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = "You must agree to the terms and conditions";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
@@ -102,42 +70,34 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Signup attempt:", formData);
-      alert("Account created successfully! Welcome to EventPro!");
+    try {
+      // Prepare the data for the backend API
+      const signupData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      };
+
+      console.log("Sending registration data:", signupData);
+      await register(signupData);
+      toast.success("Account created successfully! Please login to continue.");
+      navigate("/login"); // Redirect to login page after successful registration
+    } catch (error) {
+      console.error("Registration error in component:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleSocialSignup = (provider: string) => {
     console.log(`Signing up with ${provider}`);
-    alert(`Signing up with ${provider}...`);
+    toast(`Signing up with ${provider}...`);
   };
-
-  const getPasswordStrength = () => {
-    if (!formData.password) return { strength: 0, text: "", color: "" };
-
-    let strength = 0;
-    if (formData.password.length >= 8) strength++;
-    if (/[a-z]/.test(formData.password)) strength++;
-    if (/[A-Z]/.test(formData.password)) strength++;
-    if (/\d/.test(formData.password)) strength++;
-    if (/[^A-Za-z0-9]/.test(formData.password)) strength++;
-
-    const strengthMap = {
-      0: { text: "Very Weak", color: "#e74c3c" },
-      1: { text: "Weak", color: "#e67e22" },
-      2: { text: "Fair", color: "#f39c12" },
-      3: { text: "Good", color: "#27ae60" },
-      4: { text: "Strong", color: "#27ae60" },
-      5: { text: "Very Strong", color: "#27ae60" },
-    };
-
-    return { strength, ...strengthMap[strength as keyof typeof strengthMap] };
-  };
-
-  const passwordStrength = getPasswordStrength();
 
   return (
     <div className="signup-page">
@@ -146,7 +106,7 @@ const Signup = () => {
           {/* Header */}
           <div className="signup-header">
             <h1>Create Account</h1>
-            <p>Join EventPro and start planning amazing events</p>
+            <p>Join Endless Love and start your journey</p>
           </div>
 
           {/* Social Signup Buttons */}
@@ -174,39 +134,21 @@ const Signup = () => {
 
           {/* Signup Form */}
           <form onSubmit={handleSubmit} className="signup-form">
-            {/* Name Fields */}
-            <div className="name-fields">
-              <div className="form-group">
-                <label htmlFor="firstName">First Name *</label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className={errors.firstName ? "error" : ""}
-                  placeholder="Enter your first name"
-                />
-                {errors.firstName && (
-                  <span className="error-message">{errors.firstName}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="lastName">Last Name *</label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className={errors.lastName ? "error" : ""}
-                  placeholder="Enter your last name"
-                />
-                {errors.lastName && (
-                  <span className="error-message">{errors.lastName}</span>
-                )}
-              </div>
+            {/* Username Field */}
+            <div className="form-group">
+              <label htmlFor="username">Username *</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className={errors.username ? "error" : ""}
+                placeholder="Enter your username"
+              />
+              {errors.username && (
+                <span className="error-message">{errors.username}</span>
+              )}
             </div>
 
             {/* Email Field */}
@@ -224,52 +166,6 @@ const Signup = () => {
               {errors.email && (
                 <span className="error-message">{errors.email}</span>
               )}
-            </div>
-
-            {/* Phone Field */}
-            <div className="form-group">
-              <label htmlFor="phone">Phone Number</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className={errors.phone ? "error" : ""}
-                placeholder="Enter your phone number"
-              />
-              {errors.phone && (
-                <span className="error-message">{errors.phone}</span>
-              )}
-            </div>
-
-            {/* Account Type */}
-            <div className="form-group">
-              <label>Account Type</label>
-              <div className="account-type-selector">
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="individual"
-                    checked={formData.accountType === "individual"}
-                    onChange={handleChange}
-                  />
-                  <span className="radio-custom"></span>
-                  Individual
-                </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="business"
-                    checked={formData.accountType === "business"}
-                    onChange={handleChange}
-                  />
-                  <span className="radio-custom"></span>
-                  Business
-                </label>
-              </div>
             </div>
 
             {/* Password Field */}
@@ -296,90 +192,6 @@ const Signup = () => {
               {errors.password && (
                 <span className="error-message">{errors.password}</span>
               )}
-
-              {/* Password Strength Indicator */}
-              {formData.password && (
-                <div className="password-strength">
-                  <div className="strength-bar">
-                    <div
-                      className="strength-fill"
-                      style={{
-                        width: `${(passwordStrength.strength / 5) * 100}%`,
-                        backgroundColor: passwordStrength.color,
-                      }}
-                    ></div>
-                  </div>
-                  <span
-                    className="strength-text"
-                    style={{ color: passwordStrength.color }}
-                  >
-                    {passwordStrength.text}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password *</label>
-              <div className="password-input">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={errors.confirmPassword ? "error" : ""}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? "🙈" : "👁️"}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <span className="error-message">{errors.confirmPassword}</span>
-              )}
-            </div>
-
-            {/* Checkboxes */}
-            <div className="checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onChange={handleChange}
-                />
-                <span className="checkmark"></span>I agree to the{" "}
-                <a href="#" className="terms-link">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" className="terms-link">
-                  Privacy Policy
-                </a>{" "}
-                *
-              </label>
-              {errors.agreeToTerms && (
-                <span className="error-message">{errors.agreeToTerms}</span>
-              )}
-            </div>
-
-            <div className="checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="subscribeToNewsletter"
-                  checked={formData.subscribeToNewsletter}
-                  onChange={handleChange}
-                />
-                <span className="checkmark"></span>
-                Subscribe to our newsletter for updates and offers
-              </label>
             </div>
 
             <button type="submit" className="signup-btn" disabled={isLoading}>
@@ -417,6 +229,7 @@ const Signup = () => {
           padding: 20px;
           position: relative;
           overflow: hidden;
+          box-sizing: border-box;
         }
 
         .signup-container {
@@ -424,6 +237,7 @@ const Signup = () => {
           max-width: 500px;
           position: relative;
           z-index: 2;
+          margin: 0 auto;
         }
 
         .signup-card {
@@ -432,6 +246,8 @@ const Signup = () => {
           padding: 40px;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
           backdrop-filter: blur(10px);
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .signup-header {
@@ -444,11 +260,13 @@ const Signup = () => {
           color: #333;
           margin-bottom: 10px;
           font-weight: bold;
+          line-height: 1.2;
         }
 
         .signup-header p {
           color: #666;
           font-size: 1.1rem;
+          line-height: 1.4;
         }
 
         .social-signup {
@@ -472,6 +290,8 @@ const Signup = () => {
           cursor: pointer;
           transition: all 0.3s;
           font-size: 1rem;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .social-btn:hover {
@@ -520,17 +340,13 @@ const Signup = () => {
           display: flex;
           flex-direction: column;
           gap: 20px;
-        }
-
-        .name-fields {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
+          width: 100%;
         }
 
         .form-group {
           display: flex;
           flex-direction: column;
+          width: 100%;
         }
 
         .form-group label {
@@ -538,6 +354,7 @@ const Signup = () => {
           color: #333;
           margin-bottom: 8px;
           font-size: 0.95rem;
+          line-height: 1.2;
         }
 
         .form-group input {
@@ -546,6 +363,8 @@ const Signup = () => {
           border-radius: 12px;
           font-size: 1rem;
           transition: border-color 0.3s;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .form-group input:focus {
@@ -561,57 +380,17 @@ const Signup = () => {
           color: #e74c3c;
           font-size: 0.85rem;
           margin-top: 5px;
-        }
-
-        .account-type-selector {
-          display: flex;
-          gap: 20px;
-        }
-
-        .radio-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          color: #333;
-        }
-
-        .radio-label input[type="radio"] {
-          display: none;
-        }
-
-        .radio-custom {
-          width: 18px;
-          height: 18px;
-          border: 2px solid #e0e0e0;
-          border-radius: 50%;
-          position: relative;
-          transition: all 0.3s;
-        }
-
-        .radio-label input[type="radio"]:checked + .radio-custom {
-          border-color: #667eea;
-        }
-
-        .radio-label input[type="radio"]:checked + .radio-custom::after {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 8px;
-          height: 8px;
-          background: #667eea;
-          border-radius: 50%;
+          line-height: 1.2;
         }
 
         .password-input {
           position: relative;
+          width: 100%;
         }
 
         .password-input input {
           padding-right: 50px;
+          width: 100%;
         }
 
         .password-toggle {
@@ -624,84 +403,6 @@ const Signup = () => {
           cursor: pointer;
           font-size: 1.2rem;
           padding: 5px;
-        }
-
-        .password-strength {
-          margin-top: 10px;
-        }
-
-        .strength-bar {
-          width: 100%;
-          height: 4px;
-          background: #e0e0e0;
-          border-radius: 2px;
-          overflow: hidden;
-          margin-bottom: 5px;
-        }
-
-        .strength-fill {
-          height: 100%;
-          transition: all 0.3s;
-        }
-
-        .strength-text {
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-
-        .checkbox-group {
-          margin-bottom: 10px;
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 0.9rem;
-          color: #666;
-          line-height: 1.4;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-          display: none;
-        }
-
-        .checkmark {
-          width: 18px;
-          height: 18px;
-          border: 2px solid #e0e0e0;
-          border-radius: 4px;
-          position: relative;
-          transition: all 0.3s;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .checkbox-label input[type="checkbox"]:checked + .checkmark {
-          background: #667eea;
-          border-color: #667eea;
-        }
-
-        .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-          content: "✓";
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .terms-link {
-          color: #667eea;
-          text-decoration: none;
-          font-weight: 500;
-        }
-
-        .terms-link:hover {
-          text-decoration: underline;
         }
 
         .signup-btn {
@@ -719,6 +420,8 @@ const Signup = () => {
           justify-content: center;
           gap: 10px;
           margin-top: 10px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .signup-btn:hover:not(:disabled) {
@@ -754,6 +457,7 @@ const Signup = () => {
         .login-link p {
           color: #666;
           font-size: 0.95rem;
+          line-height: 1.4;
         }
 
         .login-link a {
@@ -803,25 +507,95 @@ const Signup = () => {
           right: 10%;
         }
 
-        @media (max-width: 480px) {
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .signup-page {
+            padding: 15px;
+          }
+          
           .signup-card {
-            padding: 30px 20px;
+            padding: 30px 25px;
+          }
+
+          .signup-header h1 {
+            font-size: 2.2rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .signup-page {
+            padding: 10px;
+          }
+          
+          .signup-card {
+            padding: 25px 20px;
           }
 
           .signup-header h1 {
             font-size: 2rem;
           }
 
-          .name-fields {
-            grid-template-columns: 1fr;
+          .signup-header p {
+            font-size: 1rem;
           }
 
-          .account-type-selector {
-            flex-direction: column;
-            gap: 10px;
+          .social-btn {
+            padding: 12px 15px;
+            font-size: 0.9rem;
+          }
+
+          .form-group input {
+            padding: 12px 15px;
+            font-size: 0.9rem;
+          }
+
+          .signup-btn {
+            padding: 12px 15px;
+            font-size: 1rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .signup-card {
+            padding: 20px 15px;
+          }
+
+          .signup-header h1 {
+            font-size: 1.8rem;
+          }
+
+          .form-group label {
+            font-size: 0.9rem;
+          }
+
+          .form-group input {
+            padding: 10px 12px;
+            font-size: 0.85rem;
           }
         }
       `}</style>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+          success: {
+            duration: 4000,
+            style: {
+              background: "#4CAF50",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#f44336",
+            },
+          },
+        }}
+      />
     </div>
   );
 };

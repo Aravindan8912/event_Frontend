@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     });
 
     // Clear error when user starts typing
@@ -55,12 +58,19 @@ const Login = () => {
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Login attempt:", formData);
+    try {
+      await login(formData.email, formData.password);
       alert("Login successful! Welcome back!");
+      navigate("/"); // Redirect to home page after successful login
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert("Login failed. Please try again.");
+      }
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -75,7 +85,7 @@ const Login = () => {
           {/* Header */}
           <div className="login-header">
             <h1>Welcome Back</h1>
-            <p>Sign in to your EventPro account</p>
+            <p>Sign in to your Endless Love account</p>
           </div>
 
           {/* Social Login Buttons */}
@@ -133,22 +143,6 @@ const Login = () => {
               {errors.password && (
                 <span className="error-message">{errors.password}</span>
               )}
-            </div>
-
-            <div className="form-options">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                />
-                <span className="checkmark"></span>
-                Remember me
-              </label>
-              <a href="#" className="forgot-password">
-                Forgot Password?
-              </a>
             </div>
 
             <button type="submit" className="login-btn" disabled={isLoading}>
@@ -326,62 +320,6 @@ const Login = () => {
           margin-top: 5px;
         }
 
-        .form-options {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 0.9rem;
-          color: #666;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-          display: none;
-        }
-
-        .checkmark {
-          width: 18px;
-          height: 18px;
-          border: 2px solid #e0e0e0;
-          border-radius: 4px;
-          position: relative;
-          transition: all 0.3s;
-        }
-
-        .checkbox-label input[type="checkbox"]:checked + .checkmark {
-          background: #667eea;
-          border-color: #667eea;
-        }
-
-        .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-          content: "✓";
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .forgot-password {
-          color: #667eea;
-          text-decoration: none;
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-
-        .forgot-password:hover {
-          text-decoration: underline;
-        }
-
         .login-btn {
           background: #667eea;
           color: white;
@@ -487,12 +425,6 @@ const Login = () => {
 
           .login-header h1 {
             font-size: 2rem;
-          }
-
-          .form-options {
-            flex-direction: column;
-            gap: 15px;
-            align-items: flex-start;
           }
         }
       `}</style>
