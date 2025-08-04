@@ -3,8 +3,7 @@ import axios from "axios";
 // Set the base URL for all API calls
 // In development, we use the Vite proxy, so we can use relative URLs
 // In production, you can set VITE_API_BASE_URL environment variable
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://13.49.238.61:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 console.log(
   "Setting axios base URL to:",
@@ -13,7 +12,7 @@ console.log(
 
 // Create a configured axios instance
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: "", // Force relative URLs for proxy
 });
 
 // Add request interceptor for logging
@@ -24,6 +23,7 @@ axiosInstance.interceptors.request.use(
     );
     console.log("Full URL:", (config.baseURL || "") + (config.url || ""));
     console.log("Base URL:", config.baseURL);
+    console.log("Config object:", config);
     return config;
   },
   (error) => {
