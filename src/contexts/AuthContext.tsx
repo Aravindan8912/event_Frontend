@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import axios from "axios";
+import axios from "../config/axios";
 
 interface User {
   id: string;
@@ -46,9 +46,11 @@ function AuthProvider({ children }: AuthProviderProps) {
   // Check if user is authenticated on app load
   useEffect(() => {
     const initAuth = async () => {
+      console.log("Initializing authentication...");
       const accessToken = localStorage.getItem("accessToken");
       if (accessToken) {
         try {
+          console.log("Found access token, verifying...");
           // Set default authorization header
           axios.defaults.headers.common[
             "Authorization"
@@ -56,12 +58,16 @@ function AuthProvider({ children }: AuthProviderProps) {
 
           // Verify token and get user info
           const response = await axios.get("/api/users/profile");
+          console.log("Token verified, user data:", response.data.user);
           setUser(response.data.user);
         } catch (error) {
+          console.log("Token verification failed, clearing storage");
           // Token is invalid, clear storage
           localStorage.removeItem("accessToken");
           delete axios.defaults.headers.common["Authorization"];
         }
+      } else {
+        console.log("No access token found");
       }
       setIsLoading(false);
     };
@@ -210,6 +216,12 @@ function AuthProvider({ children }: AuthProviderProps) {
     register,
     refreshToken,
   };
+
+  console.log("AuthContext state:", {
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
