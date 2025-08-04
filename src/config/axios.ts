@@ -10,14 +10,20 @@ console.log(
   "Setting axios base URL to:",
   API_BASE_URL || "Using relative URLs (proxy)"
 );
-axios.defaults.baseURL = API_BASE_URL;
+
+// Create a configured axios instance
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+});
 
 // Add request interceptor for logging
-axios.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
     console.log(
       `Making ${config.method?.toUpperCase()} request to: ${config.url}`
     );
+    console.log("Full URL:", (config.baseURL || "") + (config.url || ""));
+    console.log("Base URL:", config.baseURL);
     return config;
   },
   (error) => {
@@ -27,7 +33,7 @@ axios.interceptors.request.use(
 );
 
 // Add response interceptor for logging
-axios.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => {
     console.log(
       `Response received from: ${response.config.url}`,
@@ -45,4 +51,4 @@ axios.interceptors.response.use(
   }
 );
 
-export default axios;
+export default axiosInstance;

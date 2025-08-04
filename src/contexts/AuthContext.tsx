@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import axios from "../config/axios";
+import { AxiosError } from "axios";
 
 interface User {
   id: string;
@@ -51,20 +52,18 @@ function AuthProvider({ children }: AuthProviderProps) {
       if (accessToken) {
         try {
           console.log("Found access token, verifying...");
-          // Set default authorization header
-          axios.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${accessToken}`;
-
-          // Verify token and get user info
-          const response = await axios.get("/api/users/profile");
+          // Set authorization header for this request
+          const response = await axios.get("/api/users/profile", {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
           console.log("Token verified, user data:", response.data.user);
           setUser(response.data.user);
         } catch (error) {
           console.log("Token verification failed, clearing storage");
           // Token is invalid, clear storage
           localStorage.removeItem("accessToken");
-          delete axios.defaults.headers.common["Authorization"];
         }
       } else {
         console.log("No access token found");
@@ -87,12 +86,13 @@ function AuthProvider({ children }: AuthProviderProps) {
       // Store access token
       localStorage.setItem("accessToken", accessToken);
 
-      // Set default authorization header
-      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
       // Get user profile to set user data
       try {
-        const profileResponse = await axios.get("/api/users/profile");
+        const profileResponse = await axios.get("/api/users/profile", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
         setUser(profileResponse.data.user);
       } catch (profileError) {
         console.error("Failed to get user profile:", profileError);
@@ -106,7 +106,7 @@ function AuthProvider({ children }: AuthProviderProps) {
         });
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           throw new Error("Invalid email or password");
         } else if (error.response?.status === 400) {
@@ -135,7 +135,7 @@ function AuthProvider({ children }: AuthProviderProps) {
       // Return the created user data for potential use
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (error instanceof AxiosError) {
         console.error("Registration error:", error.response?.data);
         if (error.response?.status === 409) {
           throw new Error(
@@ -169,7 +169,6 @@ function AuthProvider({ children }: AuthProviderProps) {
   const logout = () => {
     // Clear tokens and user data
     localStorage.removeItem("accessToken");
-    delete axios.defaults.headers.common["Authorization"];
     setUser(null);
   };
 
